@@ -7,7 +7,7 @@ export interface LeaderboardEntry {
   rank: number;
 }
 
-const leaderboardSchema = new Schema<LeaderboardEntry>(
+const leaderboardSchema: Schema<LeaderboardEntry> = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     teamId: { type: Schema.Types.ObjectId, ref: 'Team', required: true },
@@ -19,4 +19,4 @@ const leaderboardSchema = new Schema<LeaderboardEntry>(
 
 export const LeaderboardModel =
   mongoose.models.Leaderboard ??
-  mongoose.model<LeaderboardEntry>('Leaderboard', leaderboardSchema);
+  mongoose.model('Leaderboard', leaderboardSchema);

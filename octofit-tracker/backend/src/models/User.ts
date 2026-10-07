@@ -8,7 +8,7 @@ export interface User {
   teamId?: mongoose.Types.ObjectId;
 }
 
-const userSchema = new Schema<User>(
+const userSchema: Schema<User> = new Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
@@ -24,4 +24,4 @@ const userSchema = new Schema<User>(
 );
 
 export const UserModel =
-  mongoose.models.User ?? mongoose.model<User>('User', userSchema);
+  mongoose.models.User ?? mongoose.model('User', userSchema);

@@ -10,7 +10,7 @@ export interface Activity {
   completedAt: Date;
 }
 
-const activitySchema = new Schema<Activity>(
+const activitySchema: Schema<Activity> = new Schema(
   {
     seedKey: { type: String, required: true, unique: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -28,4 +28,4 @@ const activitySchema = new Schema<Activity>(
 );
 
 export const ActivityModel =
-  mongoose.models.Activity ?? mongoose.model<Activity>('Activity', activitySchema);
+  mongoose.models.Activity ?? mongoose.model('Activity', activitySchema);

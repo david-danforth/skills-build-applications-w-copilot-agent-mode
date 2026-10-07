@@ -6,6 +6,12 @@ import { TeamModel } from '../models/Team.js';
 import { UserModel } from '../models/User.js';
 import { WorkoutModel } from '../models/Workout.js';
 
+const user = UserModel;
+const team = TeamModel;
+const activity = ActivityModel;
+const leaderboard = LeaderboardModel;
+const workout = WorkoutModel;
+
 /**
  * Seed the octofit_db database with test data
  */
@@ -13,80 +19,87 @@ async function seedDatabase() {
   try {
     await connectDatabase();
 
-    const teams = await Promise.all([
-      TeamModel.findOneAndUpdate(
-        { name: 'Trailblazers' },
-        {
-          $set: {
-            description: 'A team focused on outdoor cardio and steady progress.',
-          },
-          $setOnInsert: { memberIds: [] },
-        },
-        { upsert: true, returnDocument: 'after', runValidators: true },
-      ),
-      TeamModel.findOneAndUpdate(
-        { name: 'Power Pals' },
-        {
-          $set: {
-            description: 'A team building strength through consistent training.',
-          },
-          $setOnInsert: { memberIds: [] },
-        },
-        { upsert: true, returnDocument: 'after', runValidators: true },
-      ),
-    ]);
-    const [trailblazers, powerPals] = teams;
+    const seededEmails = [
+      'avery.johnson@example.test',
+      'maya.chen@example.test',
+      'jordan.rivera@example.test',
+    ];
+    const seededTeamNames = ['Trailblazers', 'Power Pals'];
+    const seededActivityKeys = [
+      'avery-run',
+      'avery-strength',
+      'maya-walk',
+      'maya-cycle',
+      'jordan-run',
+      'jordan-strength',
+    ];
+    const existingUsers = await user
+      .find({ email: { $in: seededEmails } })
+      .select('_id')
+      .lean();
+    const existingUserIds = existingUsers.map(({ _id }) => _id);
 
-    const userSeeds = [
+    await Promise.all([
+      leaderboard.deleteMany({ userId: { $in: existingUserIds } }),
+      workout.deleteMany({ userId: { $in: existingUserIds } }),
+      activity.deleteMany({ seedKey: { $in: seededActivityKeys } }),
+      user.deleteMany({ email: { $in: seededEmails } }),
+      team.deleteMany({ name: { $in: seededTeamNames } }),
+    ]);
+
+    const [trailblazers, powerPals] = await team.create([
+      {
+        name: 'Trailblazers',
+        description: 'A team focused on outdoor cardio and steady progress.',
+        memberIds: [],
+      },
+      {
+        name: 'Power Pals',
+        description: 'A team building strength through consistent training.',
+        memberIds: [],
+      },
+    ]);
+
+    const [avery, maya, jordan] = await user.create([
       {
         email: 'avery.johnson@example.test',
         name: 'Avery Johnson',
         age: 16,
-        fitnessLevel: 'intermediate' as const,
+        fitnessLevel: 'intermediate',
         teamId: trailblazers._id,
       },
       {
         email: 'maya.chen@example.test',
         name: 'Maya Chen',
         age: 15,
-        fitnessLevel: 'beginner' as const,
+        fitnessLevel: 'beginner',
         teamId: trailblazers._id,
       },
       {
         email: 'jordan.rivera@example.test',
         name: 'Jordan Rivera',
         age: 17,
-        fitnessLevel: 'advanced' as const,
+        fitnessLevel: 'advanced',
         teamId: powerPals._id,
       },
-    ];
-    const users = await Promise.all(
-      userSeeds.map(({ email, ...user }) =>
-        UserModel.findOneAndUpdate(
-          { email },
-          { $set: user },
-          { upsert: true, returnDocument: 'after', runValidators: true },
-        ),
-      ),
-    );
-    const [avery, maya, jordan] = users;
+    ]);
 
     await Promise.all([
-      TeamModel.updateOne(
+      team.updateOne(
         { _id: trailblazers._id },
         { $set: { memberIds: [avery._id, maya._id] } },
       ),
-      TeamModel.updateOne(
+      team.updateOne(
         { _id: powerPals._id },
         { $set: { memberIds: [jordan._id] } },
       ),
     ]);
 
-    const activitySeeds = [
+    await activity.create([
       {
         seedKey: 'avery-run',
         userId: avery._id,
-        type: 'running' as const,
+        type: 'running',
         durationMinutes: 28,
         calories: 245,
         points: 28,
@@ -95,7 +108,7 @@ async function seedDatabase() {
       {
         seedKey: 'avery-strength',
         userId: avery._id,
-        type: 'strength training' as const,
+        type: 'strength training',
         durationMinutes: 35,
         calories: 190,
         points: 35,
@@ -104,7 +117,7 @@ async function seedDatabase() {
       {
         seedKey: 'maya-walk',
         userId: maya._id,
-        type: 'walking' as const,
+        type: 'walking',
         durationMinutes: 32,
         calories: 130,
         points: 16,
@@ -113,7 +126,7 @@ async function seedDatabase() {
       {
         seedKey: 'maya-cycle',
         userId: maya._id,
-        type: 'cycling' as const,
+        type: 'cycling',
         durationMinutes: 25,
         calories: 175,
         points: 25,
@@ -122,7 +135,7 @@ async function seedDatabase() {
       {
         seedKey: 'jordan-run',
         userId: jordan._id,
-        type: 'running' as const,
+        type: 'running',
         durationMinutes: 40,
         calories: 365,
         points: 40,
@@ -131,39 +144,21 @@ async function seedDatabase() {
       {
         seedKey: 'jordan-strength',
         userId: jordan._id,
-        type: 'strength training' as const,
+        type: 'strength training',
         durationMinutes: 42,
         calories: 260,
         points: 42,
         completedAt: new Date('2026-10-05T15:30:00.000Z'),
       },
-    ];
-    await Promise.all(
-      activitySeeds.map(({ seedKey, ...activity }) =>
-        ActivityModel.updateOne(
-          { seedKey },
-          { $set: activity, $setOnInsert: { seedKey } },
-          { upsert: true, runValidators: true },
-        ),
-      ),
-    );
+    ]);
 
-    const leaderboardSeeds = [
+    await leaderboard.create([
       { userId: avery._id, teamId: trailblazers._id, points: 63, rank: 1 },
       { userId: jordan._id, teamId: powerPals._id, points: 82, rank: 2 },
       { userId: maya._id, teamId: trailblazers._id, points: 41, rank: 3 },
-    ];
-    await Promise.all(
-      leaderboardSeeds.map((entry) =>
-        LeaderboardModel.findOneAndUpdate(
-          { userId: entry.userId },
-          { $set: entry },
-          { upsert: true, returnDocument: 'after', runValidators: true },
-        ),
-      ),
-    );
+    ]);
 
-    const workoutSeeds = [
+    await workout.create([
       {
         userId: avery._id,
         title: 'Balanced Cardio and Core',
@@ -194,16 +189,7 @@ async function seedDatabase() {
           { name: 'Mountain climbers', sets: 3, reps: 20 },
         ],
       },
-    ];
-    await Promise.all(
-      workoutSeeds.map(({ userId, title, ...workout }) =>
-        WorkoutModel.findOneAndUpdate(
-          { userId, title },
-          { $set: workout },
-          { upsert: true, returnDocument: 'after', runValidators: true },
-        ),
-      ),
-    );
+    ]);
 
     console.log('Database seeding complete');
   } catch (error) {
