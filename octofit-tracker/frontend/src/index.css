@@ -1,0 +1,15 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background-color: #f8f9fa;
+}
+
+a {
+  text-decoration: none;
+}
